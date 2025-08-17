@@ -4,7 +4,7 @@ from dotenv import load_dotenv, dotenv_values
 import os
 
 app = FastAPI()
-
+load_dotenv()
 
 
 @app.post("/transaction")
@@ -18,21 +18,59 @@ def transaction(src_card: str, dest_card: str, amount: int):
     )
     cur = conn.cursor()
 
-    cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (src_card,))
-    if cur.fetchone() is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Source card not found"
-        )
-    
-    cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (dest_card,))
-    if cur.fetchone() is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Destination card not found"
-        )
-    
-    conn.commit()
+    try:
+        cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (src_card,))
+        if cur.fetchone() is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Source card not found"
+            )
+        
+        cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (dest_card,))
+        if cur.fetchone() is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Destination card not found"
+            )
+        
+        cur.execute("""
+            WITH updated AS (
+                UPDATE "Cards"
+                SET balance = balance - %s
+                WHERE card_number = %s AND balance >= %s
+                RETURNING card_number
+            )
+            UPDATE "Cards"
+            SET balance = balance + %s
+            FROM updated
+            WHERE "Cards".card_number = %s
+            RETURNING "Cards".card_number;
+        """, (amount, src_card, amount, amount, dest_card))
+        
+        result = cur.fetchone()
+        
+        if result is None:
+                conn.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Transaction failed (insufficient balance)"
+                )
+        
+        conn.commit()
+        return {
+            "message": "Transaction successful"
+        }
 
-    cur.close()
-    conn.close()
+    except HTTPException:
+        # Reraise HTTPExceptions without converting to 500
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+
+    finally:
+        cur.close()
+        conn.close()
