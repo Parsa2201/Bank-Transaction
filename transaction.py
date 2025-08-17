@@ -18,17 +18,17 @@ def transaction(req: TransactionRequest):
     src_card = req.src_card
     dest_card = req.dest_card
     amount = req.amount
-    
-    conn = psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host=os.getenv("POSTGRES_HOST"),
-        port=os.getenv("POSTGRES_PORT")
-    )
-    cur = conn.cursor()
 
     try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host=os.getenv("POSTGRES_HOST"),
+            port=os.getenv("POSTGRES_PORT")
+        )
+        cur = conn.cursor()
+
         cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (src_card,))
         if cur.fetchone() is None:
             raise HTTPException(
