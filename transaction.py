@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import psycopg2
 from dotenv import load_dotenv, dotenv_values
 import os
@@ -6,9 +7,18 @@ import os
 app = FastAPI()
 load_dotenv()
 
+class TransactionRequest(BaseModel):
+    src_card: str
+    dest_card: str
+    amount: int
+
 
 @app.post("/transaction")
-def transaction(src_card: str, dest_card: str, amount: int):
+def transaction(req: TransactionRequest):
+    src_card = req.src_card
+    dest_card = req.dest_card
+    amount = req.amount
+    
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
