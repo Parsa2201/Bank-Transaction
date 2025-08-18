@@ -17,7 +17,17 @@ cur = conn.cursor()
 cur.execute('DELETE FROM "Cards"')
 
 card_numbers = set()
-for i in range(1000):
+
+def add_default_card(card_number, balance):
+    card_numbers.add(card_number)
+    cur.execute(
+        'INSERT INTO "Cards" (card_number, balance) VALUES (%s, %s)',
+        (card_number, balance)
+    )
+add_default_card("0000000000000000", 1000)
+add_default_card("1111111111111111", 1000)
+
+for i in range(10000000):
     card_number = ''.join(random.choices('0123456789', k=16))
     card_numbers.add(card_number)
     
