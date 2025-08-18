@@ -7,12 +7,12 @@ class TestUser(HttpUser):
     @task
     def transaction(self):
         self.client.post("/transaction", json={
-            "src_card": "0007060629109952",
-            "dest_card": "0026097768678012",
+            "src_card": "0000000000000000",
+            "dest_card": "1111111111111111",
             "amount": 10
         })
         self.client.post("/transaction", json={
-            "src_card": "0026097768678012",
-            "dest_card": "0007060629109952",
+            "src_card": "1111111111111111",
+            "dest_card": "0000000000000000",
             "amount": 10
         })
