@@ -2,6 +2,7 @@ import psycopg2
 from dotenv import load_dotenv, dotenv_values
 import os
 import random
+from tqdm import tqdm
 
 load_dotenv()
 
@@ -27,7 +28,9 @@ def add_default_card(card_number, balance):
 add_default_card("0000000000000000", 1000)
 add_default_card("1111111111111111", 1000)
 
-for i in range(10000000):
+total_cards = 1000000
+
+for i in tqdm(range(total_cards), desc="Inserting cards", unit="card"):
     card_number = ''.join(random.choices('0123456789', k=16))
     card_numbers.add(card_number)
     
