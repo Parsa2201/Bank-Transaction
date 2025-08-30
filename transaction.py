@@ -147,3 +147,41 @@ async def get_card_log_sum(card_number: str):
             status_code=500,
             detail=f"Database error: {str(e)}"
         )
+    
+@app.get("/verify-card-balance")
+async def verify_card_balance(card_number: str):
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("""
+                SELECT 
+                    c.balance + COALESCE((
+                        SELECT SUM(
+                            CASE
+                                WHEN src_card_number = %s THEN -amount
+                                WHEN dest_card_number = %s THEN amount
+                                ELSE 0
+                            END
+                        )
+                        FROM logs
+                        WHERE src_card_number = %s OR dest_card_number = %s
+                    ), 0) AS start_balance
+                FROM "Cards" c
+                WHERE c.card_number = %s
+                FOR UPDATE
+            """, (card_number, card_number, card_number, card_number, card_number))
+
+            start_balance = cur.fetchone()
+
+            if start_balance is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Card number not found"
+                )
+            return {"balance": start_balance[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
