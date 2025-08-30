@@ -92,6 +92,11 @@ async def transaction(req: TransactionRequest):
                         status_code=200,
                         detail="Transaction failed (insufficient balance)"
                     )
+            
+            cur.execute("""
+                INSERT INTO logs(src_card_number, dest_card_number, amount)
+                VALUES(%s, %s, %s)
+            """, (src_card, dest_card, amount))
 
     except HTTPException:
         # Reraise HTTPExceptions without converting to 500
