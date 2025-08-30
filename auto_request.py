@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import psycopg2
 import os
 import random
+import time
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ card_numbers = list(cur.fetchall())
 print(len(card_numbers))
 
 class TestUser(HttpUser):
-    wait_time = between(0.2, 0.4)
+    wait_time = between(0.1, 0.2)
 
     @task
     def default_transaction(self):
@@ -40,7 +41,7 @@ class TestUser(HttpUser):
     def random_transaction(self):
         card1, card2 = random.sample(card_numbers, k=2)
         self.client.post("/transaction", json={
-            "src_card": card1,
-            "dest_card": card2,
+            "src_card": card1[0],
+            "dest_card": card2[0],
             "amount": 10
         })
