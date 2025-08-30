@@ -57,42 +57,34 @@ async def transaction(req: TransactionRequest):
     try:
         with get_db_cursor(commit=True) as cur:
 
-            cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (src_card,))
-            if cur.fetchone() is None:
+            # Lock the source card row for update to ensure concurrency safety
+            cur.execute("""SELECT card_number, balance
+                FROM "Cards"
+                WHERE card_number IN (%s, %s)
+                FOR UPDATE;
+            """, (src_card, dest_card))
+            rows = cur.fetchall()
+            if len(rows) != 2:
                 raise HTTPException(
                     status_code=404,
-                    detail="Source card not found"
+                    detail="card not found"
                 )
-            
-            cur.execute('SELECT card_number FROM "Cards" WHERE card_number = %s', (dest_card,))
-            if cur.fetchone() is None:
+            # Map balances to src and dest
+            balances = {row[0]: row[1] for row in rows}
+            src_balance = balances[src_card]
+            dest_balance = balances[dest_card]
+
+            if src_balance < amount:
                 raise HTTPException(
-                    status_code=404,
-                    detail="Destination card not found"
+                    status_code=200,
+                    detail="Transaction failed (insufficient balance)"
                 )
             
-            cur.execute("""
-                WITH updated AS (
-                    UPDATE "Cards"
-                    SET balance = balance - %s
-                    WHERE card_number = %s AND balance >= %s
-                    RETURNING card_number
-                )
-                UPDATE "Cards"
-                SET balance = balance + %s
-                FROM updated
-                WHERE "Cards".card_number = %s
-                RETURNING "Cards".card_number;
-            """, (amount, src_card, amount, amount, dest_card))
-            
-            result = cur.fetchone()
-            
-            if result is None:
-                    raise HTTPException(
-                        status_code=200,
-                        detail="Transaction failed (insufficient balance)"
-                    )
-            
+            # Debit source card
+            cur.execute('UPDATE "Cards" SET balance = balance - %s WHERE card_number = %s', (amount, src_card))
+            # Credit destination card
+            cur.execute('UPDATE "Cards" SET balance = balance + %s WHERE card_number = %s', (amount, dest_card))
+
             cur.execute("""
                 INSERT INTO logs(src_card_number, dest_card_number, amount)
                 VALUES(%s, %s, %s)
