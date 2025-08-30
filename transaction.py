@@ -123,3 +123,27 @@ async def get_balance(card_number: str):
             status_code=500,
             detail=f"Database error: {str(e)}"
         )
+    
+@app.get("/get-card-log-sum")
+async def get_card_log_sum(card_number: str):
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("""
+                SELECT balance from logs
+                WHERE card_number = %s
+            """, (card_number,))
+
+            balance = cur.fetchone()
+            if balance is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Card number not found"
+                )
+            return {"balance": balance}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
