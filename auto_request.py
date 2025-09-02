@@ -1,19 +1,15 @@
-# locustfile.py
 from locust import HttpUser, task, between
-from dotenv import load_dotenv
 import psycopg2
 import os
 import random
 import time
 
-load_dotenv()
-
 conn = psycopg2.connect(
-    dbname=os.getenv("POSTGRES_DB"),
-    user=os.getenv("POSTGRES_USER"),
-    password=os.getenv("POSTGRES_PASSWORD"),
-    host=os.getenv("POSTGRES_HOST"),
-    port=os.getenv("POSTGRES_PORT")
+    dbname=os.getenv("DATABASE_NAME"),
+    user=os.getenv("DATABASE_USER"),
+    password=os.getenv("DATABASE_PASSWORD"),
+    host=os.getenv("DATABASE_HOST"),
+    port=os.getenv("DATABASE_PORT")
 )
 cur = conn.cursor()
 
