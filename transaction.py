@@ -2,21 +2,19 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
-from dotenv import load_dotenv, dotenv_values
 import os
 from contextlib import contextmanager
 
 app = FastAPI()
-load_dotenv()
 
 db_pool = SimpleConnectionPool(
     minconn=1,
     maxconn=20,
-    dbname=os.getenv("POSTGRES_DB"),
-    user=os.getenv("POSTGRES_USER"),
-    password=os.getenv("POSTGRES_PASSWORD"),
-    host=os.getenv("POSTGRES_HOST"),
-    port=os.getenv("POSTGRES_PORT")
+    dbname=os.getenv("DATABASE_NAME"),
+    user=os.getenv("DATABASE_USER"),
+    password=os.getenv("DATABASE_PASSWORD"),
+    host=os.getenv("DATABASE_HOST"),
+    port=os.getenv("DATABASE_PORT")
 )
 
 @contextmanager
