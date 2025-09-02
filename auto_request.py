@@ -13,7 +13,7 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
-cur.execute('SELECT card_number FROM "Cards"')
+cur.execute('SELECT card_number FROM cards LIMIT 100')
 card_numbers = list(cur.fetchall())
 print(len(card_numbers))
 
