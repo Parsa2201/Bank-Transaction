@@ -57,7 +57,7 @@ async def transaction(req: TransactionRequest):
 
             # Lock the source card row for update to ensure concurrency safety
             cur.execute("""SELECT card_number, balance
-                FROM "Cards"
+                FROM cards
                 WHERE card_number IN (%s, %s)
                 FOR UPDATE;
             """, (src_card, dest_card))
@@ -79,9 +79,9 @@ async def transaction(req: TransactionRequest):
                 )
             
             # Debit source card
-            cur.execute('UPDATE "Cards" SET balance = balance - %s WHERE card_number = %s', (amount, src_card))
+            cur.execute('UPDATE cards SET balance = balance - %s WHERE card_number = %s', (amount, src_card))
             # Credit destination card
-            cur.execute('UPDATE "Cards" SET balance = balance + %s WHERE card_number = %s', (amount, dest_card))
+            cur.execute('UPDATE cards SET balance = balance + %s WHERE card_number = %s', (amount, dest_card))
 
             cur.execute("""
                 INSERT INTO logs(src_card_number, dest_card_number, amount)
@@ -103,7 +103,7 @@ async def get_balance(card_number: str):
     try:
         with get_db_cursor(commit=True) as cur:
             cur.execute("""
-                SELECT balance from "Card"
+                SELECT balance from cards
                 WHERE card_number = %s
             """, (card_number,))
 
@@ -163,7 +163,7 @@ async def verify_card_balance(card_number: str):
                         FROM logs
                         WHERE src_card_number = %s OR dest_card_number = %s
                     ), 0) AS start_balance
-                FROM "Cards" c
+                FROM cards c
                 WHERE c.card_number = %s
                 FOR UPDATE
             """, (card_number, card_number, card_number, card_number, card_number))
