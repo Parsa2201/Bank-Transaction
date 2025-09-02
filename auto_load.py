@@ -14,6 +14,7 @@ cur = conn.cursor()
 
 cur.execute('TRUNCATE TABLE cards RESTART IDENTITY CASCADE')
 cur.execute('TRUNCATE TABLE logs RESTART IDENTITY CASCADE')
+cur.execute('DROP INDEX IF EXISTS idx_cards_card_number;')
 
 def add_default_card(card_number, balance):
     cur.execute(
@@ -38,6 +39,7 @@ for start in tqdm(range(2, total_cards + 2, chunk_size), desc="Loading cards", u
     cur.copy_from(buffer, 'cards', columns=('card_number', 'balance'), sep='\t')
     conn.commit()
 
+cur.execute('CREATE INDEX idx_cards_card_number ON cards(card_number);')
 conn.commit()
 
 cur.close()
