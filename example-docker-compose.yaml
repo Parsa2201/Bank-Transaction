@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # YugabyteDB database
+  db:
+    image: yugabytedb/yugabyte:latest
+    container_name: bank_transactions
+    command: [
+      "bin/yugabyted", "start",
+      "--background=false"
+    ]
+    ports:
+      - "5433:5433"   # YSQL API (Postgres-compatible)
+      - "9042:9042"   # YCQL API (Cassandra-compatible)
+      - "7001:7000"   # YB-Master Admin UI
+      - "9000:9000"   # YB-TServer Admin UI
+      - "15433:15433"
+    volumes:
+      - yb_data:/home/yugabyte/yb_data
+
+  # Loader: creates DB + loads data
+  loader:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5433
+      DATABASE_USER:
+      DATABASE_PASSWORD:
+      DATABASE_NAME:
+    command: sh -c "sleep 1 && python auto_load.py"
+
+  # Backend: FastAPI app
+  backend:
+    build: .
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5433
+      DATABASE_USER:
+      DATABASE_PASSWORD:
+      DATABASE_NAME:
+    ports:
+      - "8000:8000"
+    command: uvicorn transaction:app --host 0.0.0.0 --port 8000 --reload
+
+  # Tester: Locust load testing
+  tester:
+    build: .
+    depends_on:
+      - backend
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5433
+      DATABASE_USER:
+      DATABASE_PASSWORD:
+      DATABASE_NAME:
+    ports:
+      - "8089:8089"  # Locust web UI
+    command: locust -f auto_request.py --host http://backend:8000
+
+volumes:
+  yb_data:
