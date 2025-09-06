@@ -4,6 +4,11 @@ from tqdm import tqdm
 import io
 from contextlib import contextmanager
 
+# TOTAL_CARDS = 100_000_000
+TOTAL_CARDS = 1_000_000
+CHUNK_SIZE = 1_000_000
+DEFAULT_BALANCE = 1000
+
 class SingleDatabaseConnection:
     def __init__(self):
         self.conn = psycopg2.connect(
@@ -30,7 +35,7 @@ class SingleDatabaseConnection:
 
 
 class CardLoader:
-    def __init__(self, total_cards=100_000_000, chunk_size=1_000_000, default_balance=1000):
+    def __init__(self, total_cards=TOTAL_CARDS, chunk_size=CHUNK_SIZE, default_balance=DEFAULT_BALANCE):
         self.total_cards = total_cards
         self.total_primary_cards = 0
         self.chunk_size = chunk_size
