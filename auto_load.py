@@ -27,7 +27,7 @@ class SingleDatabaseConnection:
         except:
             self.conn.rollback()
         finally:
-            self.conn.close()
+            self.conn.commit()
     
     def close(self):
         self.cur.close()
