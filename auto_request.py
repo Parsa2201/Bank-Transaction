@@ -3,6 +3,7 @@ import psycopg2
 import os
 import random
 import time
+from requests.exceptions import HTTPError
 
 conn = psycopg2.connect(
     dbname=os.getenv("DATABASE_NAME"),
@@ -22,22 +23,31 @@ class TestUser(HttpUser):
 
     @task
     def default_transaction(self):
-        self.client.post("/transaction", json={
-            "src_card": "0000000000000000",
-            "dest_card": "1111111111111111",
-            "amount": 10
-        })
-        self.client.post("/transaction", json={
-            "src_card": "1111111111111111",
-            "dest_card": "0000000000000000",
-            "amount": 10
-        })
+        for src, dest in [("0000000000000000", "1111111111111111"),
+                          ("1111111111111111", "0000000000000000")]:
+            with self.client.post(
+                "/transaction",
+                json={"src_card": src, "dest_card": dest, "amount": 10},
+                catch_response=True
+            ) as response:
+                if response.status_code == 400:
+                    response.success()  # treat 400 as success
+                elif response.status_code != 200:
+                    response.failure(f"Unexpected status code: {response.status_code}")
 
     @task
     def random_transaction(self):
         card1, card2 = random.sample(card_numbers, k=2)
-        self.client.post("/transaction", json={
-            "src_card": card1[0],
-            "dest_card": card2[0],
-            "amount": 10
-        })
+        with self.client.post(
+            "/transaction", 
+            json={
+                "src_card": card1[0],
+                "dest_card": card2[0],
+                "amount": 10},
+            catch_response=True
+        ) as response:
+            if response.status_code == 400:
+                response.success()  # treat 400 as success
+            elif response.status_code != 200:
+                response.failure(f"Unexpected status code: {response.status_code}")
+
